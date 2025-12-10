@@ -127,8 +127,8 @@ public:
         if (n == 0) {
             Serial.println("No networks found.");
             globalPeopleCount = 0;
-            globalComputerCount = 0; // 重置
-            globalPhoneCount = 0;    // 重置
+            globalComputerCount = 0; 
+            globalPhoneCount = 0;    
             return;
         } else if (n < 0) {
             Serial.println("Scan error.");
