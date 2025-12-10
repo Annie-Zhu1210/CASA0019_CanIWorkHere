@@ -44,6 +44,9 @@ void setup() {
   gaugeServo.attach(servoPin);
   gaugeServo.write(0);
   Serial.println("Servo initialised on Pin 3");
+  Serial.println("Holding at 0 degrees for 3 seconds...");
+  delay(3000);  // Hold at 0 degrees for 3 seconds
+  Serial.println("Starting system...");
   
   // Initialise LED strip
   strip.begin();
@@ -141,21 +144,39 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 }
 
 void updateServo(float dB) {
-  // Map 30-90 dB to 0-270 degrees for the pointer
-  int servoAngle = map(dB * 10, 300, 900, 0, 135);
-  servoAngle = constrain(servoAngle, 0, 135);
   
-  gaugeServo.write(servoAngle);
+  const float GEAR_RATIO = 14.0 / 30.0; 
+
+  // Limit the input range (30dB to 90dB)
+  float safeDB = constrain(dB, 30.0, 90.0);
+
+  // Calculate percentage (0.0 to 1.0)
+  float progress = (safeDB - 30.0) / (60.0); // 60.0 is the total range (90-30)
+
+  // alculate target pointer angle (0 to 270 degrees)
+  float targetPointerAngle = progress * 270.0;
+
+  // Calculate actual servo angle
+  // Servo Angle = Pointer Angle * Gear Ratio
+  float servoAngleFloat = targetPointerAngle * GEAR_RATIO;
   
-  int pointerAngle = servoAngle * 2;
+  // Convert to integer for the servo motor
+  int finalServoAngle = (int)servoAngleFloat;
   
-  Serial.print("Sound Level: ");
-  Serial.print(dB);
-  Serial.print(" dB → Servo: ");
-  Serial.print(servoAngle);
-  Serial.print("° → Pointer: ");
-  Serial.print(pointerAngle);
-  Serial.println("°");
+  // Safety limit (to prevent servo form turning too far)
+  finalServoAngle = constrain(finalServoAngle, 0, 140);
+
+  gaugeServo.write(finalServoAngle);
+  
+  // --- Serial Debugging (Using float for better precision) ---
+  Serial.print("Sound: ");
+  Serial.print(safeDB);
+  Serial.print("dB | Progress: ");
+  Serial.print(progress * 100);
+  Serial.print("% | Pointer Target: ");
+  Serial.print(targetPointerAngle);
+  Serial.print(" deg | Servo Actual: ");
+  Serial.println(finalServoAngle);
 }
 
 void updateLEDs(int rssi) {
